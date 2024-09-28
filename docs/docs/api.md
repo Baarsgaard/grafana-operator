@@ -2763,6 +2763,14 @@ GrafanaFolderSpec defines the desired state of GrafanaFolder
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>forceDeleteRules</b></td>
+        <td>boolean</td>
+        <td>
+          Enable forced deletion of the folder that would otherwise be blocked by contained Alert rules
+Caution is advised as this may cause dataloss<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>parentFolderRef</b></td>
         <td>string</td>
         <td>

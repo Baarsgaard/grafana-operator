@@ -1348,6 +1348,11 @@ spec:
                 description: allow to import this resources from an operator in a
                   different namespace
                 type: boolean
+              forceDeleteRules:
+                description: |-
+                  Enable forced deletion of the folder that would otherwise be blocked by contained Alert rules
+                  Caution is advised as this may cause dataloss
+                type: boolean
               instanceSelector:
                 description: selects Grafanas for import
                 properties:

@@ -54,6 +54,11 @@ type GrafanaFolderSpec struct {
 	// +optional
 	ParentFolderRef string `json:"parentFolderRef,omitempty"`
 
+	// Enable forced deletion of the folder that would otherwise be blocked by contained Alert rules
+	// Caution is advised as this may cause dataloss
+	// +optional
+	ForceDeleteRules *bool `json:"forceDeleteRules,omitempty"`
+
 	// how often the folder is synced, defaults to 5m if not set
 	// +optional
 	// +kubebuilder:validation:Type=string
@@ -153,6 +158,13 @@ func (in *GrafanaFolder) Unchanged() bool {
 func (in *GrafanaFolder) IsAllowCrossNamespaceImport() bool {
 	if in.Spec.AllowCrossNamespaceImport != nil {
 		return *in.Spec.AllowCrossNamespaceImport
+	}
+	return false
+}
+
+func (in *GrafanaFolder) IsForceDeleteRules() bool {
+	if in.Spec.ForceDeleteRules != nil {
+		return *in.Spec.ForceDeleteRules
 	}
 	return false
 }

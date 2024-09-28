@@ -113,7 +113,11 @@ func (r *GrafanaFolderReconciler) syncFolders(ctx context.Context) (ctrl.Result,
 
 			namespace, name, uid := folder.Split()
 
+			// This does not work
 			params := folders.NewDeleteFolderParams().WithFolderUID(uid)
+			// This does???
+			// delete := true
+			// params := folders.NewDeleteFolderParams().WithFolderUID(delete)
 			_, err = grafanaClient.Folders.DeleteFolder(params) //nolint
 			if err != nil {
 				var notFound *folders.DeleteFolderNotFound
@@ -172,7 +176,8 @@ func (r *GrafanaFolderReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}, folder)
 	if err != nil {
 		if kuberr.IsNotFound(err) {
-			if err := r.onFolderDeleted(ctx, req.Namespace, req.Name); err != nil {
+			forceDelete := folder.IsForceDeleteRules()
+			if err := r.onFolderDeleted(ctx, req.Namespace, req.Name, forceDelete); err != nil {
 				return ctrl.Result{RequeueAfter: RequeueDelay}, err
 			}
 			return ctrl.Result{}, nil
@@ -277,7 +282,7 @@ func (r *GrafanaFolderReconciler) SetupWithManager(mgr ctrl.Manager, ctx context
 	return err
 }
 
-func (r *GrafanaFolderReconciler) onFolderDeleted(ctx context.Context, namespace string, name string) error {
+func (r *GrafanaFolderReconciler) onFolderDeleted(ctx context.Context, namespace string, name string, forceDelete bool) error {
 	list := grafanav1beta1.GrafanaList{}
 	var opts []client.ListOption
 	err := r.Client.List(ctx, &list, opts...)
@@ -292,7 +297,7 @@ func (r *GrafanaFolderReconciler) onFolderDeleted(ctx context.Context, namespace
 			if err != nil {
 				return err
 			}
-			params := folders.NewDeleteFolderParams().WithFolderUID(*uid)
+			params := folders.NewDeleteFolderParams().WithFolderUID(*uid).WithForceDeleteRules(&forceDelete)
 			_, err = grafanaClient.Folders.DeleteFolder(params) //nolint
 			if err != nil {
 				var notFound *folders.DeleteFolderNotFound
