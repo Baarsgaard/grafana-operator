@@ -53,7 +53,7 @@ Create a new version of the operator under
 [https://github.com/k8s-operatorhub/community-operators/tree/main/operators/grafana-operator](https://github.com/k8s-operatorhub/community-operators/tree/main/operators/grafana-operator)
 that matches the new tag.
 
-Copy the content of `bundle/manifests/` in the grafana-operator repo from the taged version.
+Copy the content of `bundle/manifests/` in the grafana-operator repo from the tagged version.
 
 Update `operators/grafana-operator/grafana-operator.package.yaml` with the new tag.
 
@@ -63,6 +63,6 @@ Create a new version of the operator under
 [https://github.com/redhat-openshift-ecosystem/community-operators-prod/tree/main/operators/grafana-operator](https://github.com/redhat-openshift-ecosystem/community-operators-prod/tree/main/operators/grafana-operator)
 that matches the new tag.
 
-Copy the content of `bundle/manifests/` in the grafana-operator repo from the taged version.
+Copy the content of `bundle/manifests/` in the grafana-operator repo from the tagged version.
 
 Update `grafana-operator/grafana-operator.package.yaml` with the new tag.

@@ -285,7 +285,7 @@ spec:
               "expr": "sum(jvm_memory_bytes_committed{instance=\"$instance\",job=\"keycloak\"})",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Comitted",
+              "legendFormat": "Committed",
               "refId": "C"
             },
             {
@@ -913,7 +913,7 @@ spec:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "Registrations per CLIENT on relm $realm",
+          "title": "Registrations per CLIENT on realm $realm",
           "tooltip": {
             "shared": true,
             "sort": 0,

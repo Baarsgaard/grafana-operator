@@ -143,7 +143,7 @@ type GrafanaDashboardSpec struct {
 
 type GrafanaDashboardEnv struct {
 	Name string `json:"name"`
-	// Inline evn value
+	// Inline even value
 	// +optional
 	Value string `json:"value,omitempty"`
 	// Reference on value source, might be the reference on a secret or config map
