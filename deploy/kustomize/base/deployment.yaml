@@ -23,7 +23,7 @@ spec:
             - --metrics-bind-address=0.0.0.0:9090
             - --leader-elect
           image: ghcr.io/grafana/grafana-operator:v5.6.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9090
               name: metrics
