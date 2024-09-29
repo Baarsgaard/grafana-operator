@@ -94,19 +94,20 @@ endif
 ##@ Development
 
 .PHONY: manifests
-manifests: yq controller-gen kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: yq controller-gen kustomize helm ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..." crd output:crd:artifacts:config=config/crd/bases
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..." crd output:crd:artifacts:config=deploy/helm/grafana-operator/crds
 	$(YQ) -i '(select(.kind == "Deployment") | .spec.template.spec.containers[0].env[] | select (.name == "RELATED_IMAGE_GRAFANA")).value="$(GRAFANA_IMAGE):$(GRAFANA_VERSION)"' config/manager/manager.yaml
-
-	# NOTE: As we publish the whole kustomize folder structure (deploy/kustomize) as an OCI arfifact via flux, in kustomization.yaml, we cannot reference files that reside outside of deploy/kustomize. Thus, we need to maintain an additional copy of CRDs and the ClusterRole
-	$(KUSTOMIZE) build config/crd -o deploy/kustomize/base/crds.yaml
-	cp config/rbac/role.yaml deploy/kustomize/base/role.yaml
 
 	# Sync role definitions to helm chart
 	mkdir -p deploy/helm/grafana-operator/files
 	cat config/rbac/role.yaml | $(YQ) -r 'del(.rules[] | select (.apiGroups | contains(["route.openshift.io"])))' > deploy/helm/grafana-operator/files/rbac.yaml
 	cat config/rbac/role.yaml | $(YQ) -r 'del(.rules[] | select (.apiGroups | contains(["route.openshift.io"]) | not))'  > deploy/helm/grafana-operator/files/rbac-openshift.yaml
+	
+	# NOTE: As we publish the whole kustomize folder structure (deploy/kustomize) as an OCI arfifact via flux, in kustomization.yaml, we cannot reference files that reside outside of deploy/kustomize. Thus, we need to maintain an additional copy of CRDs and the ClusterRole
+	$(KUSTOMIZE) build config/crd -o deploy/kustomize/base/crds.yaml
+	cd deploy/kustomize/base && $(HELM) template --hide-notes --release-name manager ../../helm/grafana-operator | grep -vE '([Hh]elm|app\.kubernetes\.io/(part-of|component))' | yq -s '.kind'
+	@rm deploy/kustomize/base/null.yml || :
 
 # Generate API reference documentation
 api-docs: manifests gen-crd-api-reference-docs
@@ -170,11 +171,13 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+HELM ?= $(LOCALBIN)/helm
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.1.1
+HELM_VERSION ?= v3.16.1
 CONTROLLER_TOOLS_VERSION ?= v0.14.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -183,6 +186,13 @@ kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
 
+HELM_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+.PHONY: helm
+helm: $(HELM)
+$(HELM):
+	@test -s $(LOCALBIN)/helm || { curl -Ss $(HELM_INSTALL_SCRIPT) | \
+	HELM_INSTALL_DIR="$(LOCALBIN)" USE_SUDO="false" DESIRED_VERSION="$(HELM_VERSION)" bash -s; }
+	
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
