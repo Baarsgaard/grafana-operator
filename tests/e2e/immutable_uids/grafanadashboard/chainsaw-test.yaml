@@ -4,69 +4,143 @@ kind: Test
 metadata:
   name: dashboards-uids
 spec:
-  concurrent: true
+  bindings:
+    - name: dashboardModel
+      value: |
+        {
+          "id": null,
+          "uid": "dashUID",
+          "title": "Simple Dashboard",
+          "tags": [],
+          "timezone": "browser",
+          "editable": true,
+          "graphTooltip": 1,
+          "panels": [],
+          "time": {
+            "from": "now-6h",
+            "to": "now"
+          },
+          "timepicker": {
+            "time_options": [],
+            "refresh_intervals": []
+          },
+          "templating": {
+            "list": []
+          },
+          "annotations": {
+            "list": []
+          },
+          "refresh": "5s",
+          "schemaVersion": 39,
+          "version": 0,
+          "links": [],
+          "fiscalYearStartMonth": 0,
+          "weekStart": ""
+        }
+    - name: dashboardModelPatch
+      value: |
+        {
+          "id": null,
+          "uid": "newDashUID",
+          "title": "Simple Dashboard",
+          "tags": [],
+          "timezone": "browser",
+          "editable": true,
+          "graphTooltip": 1,
+          "panels": [],
+          "time": {
+            "from": "now-6h",
+            "to": "now"
+          },
+          "timepicker": {
+            "time_options": [],
+            "refresh_intervals": []
+          },
+          "templating": {
+            "list": []
+          },
+          "annotations": {
+            "list": []
+          },
+          "refresh": "5s",
+          "schemaVersion": 39,
+          "version": 0,
+          "links": [],
+          "fiscalYearStartMonth": 0,
+          "weekStart": ""
+        }
+
   steps:
-    - name: Create dashboards
+    - name: Create dashboards and Grafana instance
       try:
         - apply:
             file: base-resources.yaml
 
-    - name: Attempt dashboards updates
+    - name: Attempt patching uids
       try:
-        - apply:
-            file: update-dash-uid.yaml
+        - patch:
+            resource:
+              apiVersion: grafana.integreatly.org/v1beta1
+              kind: GrafanaDashboard
+              metadata:
+                name: dashboard-uid
+              spec:
+                json: ($dashboardModelPatch)
 
-        - apply:
+        - patch:
             resource:
               apiVersion: grafana.integreatly.org/v1beta1
               kind: GrafanaDashboard
               metadata:
                 name: metadata-uid
-                namespace: uid-immutability
               spec:
-                instanceSelector:
-                  matchLabels:
-                    dashboards: "grafana"
                 uid: newCRUID
-                json: ""
             expect:
               - check:
                   ($error != null): true
 
-        - apply:
+        - patch:
             resource:
               apiVersion: grafana.integreatly.org/v1beta1
               kind: GrafanaDashboard
               metadata:
                 name: spec-uid
-                namespace: uid-immutability
               spec:
-                instanceSelector:
-                  matchLabels:
-                    dashboards: "grafana"
                 uid: newSpecUID
-                json: ""
             expect:
               - check:
                   ($error != null): true
 
-    - name: Verify uids only changed for jsonModels
+    - name: Verify uid only changed for jsonModels
       try:
         - assert:
-            file: assertions.yaml
+            bindings:
+              - name: dashboardModelUid
+                value: newDashUID
+            resource:
+              apiVersion: grafana.integreatly.org/v1beta1
+              kind: GrafanaDashboard
+              metadata:
+                name: dashboard-uid
+              spec:
+                json: ($dashboardModelPatch)
 
+        - script:
+            content: kubectl get grafanadashboards -n $NAMESPACE -o json metadata-uid
+            outputs:
+              - name: metadataUid
+                value: (json_parse($stdout))
         - assert:
             resource:
               apiVersion: grafana.integreatly.org/v1beta1
               kind: GrafanaDashboard
               metadata:
                 name: metadata-uid
-                namespace: uid-immutability
+                uid: "($metadataUid.metadata.uid)"
               spec:
                 instanceSelector:
                   matchLabels:
-                    dashboards: "grafana"
-                json: ""
+                    immutable: "grafana"
 
         - assert:
             resource:
@@ -74,10 +148,37 @@ spec:
               kind: GrafanaDashboard
               metadata:
                 name: spec-uid
-                namespace: uid-immutability
               spec:
-                instanceSelector:
-                  matchLabels:
-                    dashboards: "grafana"
-                uid: oldSpecUID
-                json: ""
+                uid: SpecUID
+
+    - name: Verify uid in Grafana Instance status object
+      try:
+        - script:
+            content: kubectl get grafanadashboards -n $NAMESPACE -o json dashboard-uid
+            outputs:
+              - name: dashboardUid
+                value: (json_parse($stdout))
+        - script:
+            content: kubectl get grafanadashboards -n $NAMESPACE -o json metadata-uid
+            outputs:
+              - name: metadataUid
+                value: (json_parse($stdout))
+        - script:
+            content: kubectl get grafanadashboards -n $NAMESPACE -o json spec-uid
+            outputs:
+              - name: specUid
+                value: (json_parse($stdout))
+
+        - sleep:
+            duration: 30s
+
+        - assert:
+            resource:
+              apiVersion: grafana.integreatly.org/v1beta1
+              kind: Grafana
+              metadata:
+                name: grafana-immutable
+              status:
+                (contains(dashboards[*], join('/', [$namespace, 'dashboard-uid', $dashboardUid.metadata.uid]))): true
+                (contains(dashboards[*], join('/', [$namespace, 'metadata-uid', $metadataUid.metadata.uid]))): true
+                (contains(dashboards[*], join('/', [$namespace, 'spec-uid', $specUid.spec.uid]))): true
