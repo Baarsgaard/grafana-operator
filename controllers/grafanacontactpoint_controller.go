@@ -140,32 +140,16 @@ func (r *GrafanaContactPointReconciler) Reconcile(ctx context.Context, req ctrl.
 			applyErrors[fmt.Sprintf("%s/%s", grafana.Namespace, grafana.Name)] = err.Error()
 		}
 	}
-	condition := metav1.Condition{
-		Type:               conditionContactPointSynchronized,
-		ObservedGeneration: contactPoint.Generation,
-		LastTransitionTime: metav1.Time{
-			Time: time.Now(),
-		},
-	}
-
-	if len(applyErrors) == 0 {
-		condition.Status = "True"
-		condition.Reason = "ApplySuccessful"
-		condition.Message = fmt.Sprintf("Contact point was successfully applied to %d instances", len(instances))
-	} else {
-		condition.Status = "False"
-		condition.Reason = "ApplyFailed"
-
-		var sb strings.Builder
-		for i, err := range applyErrors {
-			sb.WriteString(fmt.Sprintf("\n- %s: %s", i, err))
-		}
-
-		condition.Message = fmt.Sprintf("Contact point failed to be applied for %d out of %d instances. Errors:%s", len(applyErrors), len(instances), sb.String())
-	}
+	condition := buildSynchronizedCondition("Contact Point", conditionContactPointSynchronized, contactPoint.Generation, applyErrors, len(instances))
 	meta.SetStatusCondition(&contactPoint.Status.Conditions, condition)
-
-	return ctrl.Result{RequeueAfter: contactPoint.Spec.ResyncPeriod.Duration}, nil
+	if len(applyErrors) != 0 {
+		return ctrl.Result{}, fmt.Errorf("failed to apply to all instances: %v", applyErrors)
+	}
+	if contactPoint.ResyncPeriodHasElapsed() {
+		contactPoint.Status.LastResync = metav1.Time{Time: time.Now()}
+	}
+	contactPoint.Status.Hash = contactPoint.Hash()
+	return ctrl.Result{RequeueAfter: contactPoint.GetResyncPeriod()}, nil
 }
 
 func (r *GrafanaContactPointReconciler) reconcileWithInstance(ctx context.Context, instance *grafanav1beta1.Grafana, contactPoint *grafanav1beta1.GrafanaContactPoint) error {
@@ -292,11 +276,13 @@ func (r *GrafanaContactPointReconciler) removeFromInstance(ctx context.Context, 
 func (r *GrafanaContactPointReconciler) GetMatchingInstances(ctx context.Context, contactPoint *grafanav1beta1.GrafanaContactPoint, k8sClient client.Client) ([]grafanav1beta1.Grafana, error) {
 	instances, err := GetMatchingInstances(ctx, k8sClient, contactPoint.Spec.InstanceSelector)
 	if err != nil || len(instances.Items) == 0 {
+		contactPoint.Status.NoMatchingInstances = true
 		return nil, err
 	}
 	if contactPoint.Spec.AllowCrossNamespaceImport != nil && *contactPoint.Spec.AllowCrossNamespaceImport {
 		return instances.Items, nil
 	}
+	contactPoint.Status.NoMatchingInstances = false
 	items := []grafanav1beta1.Grafana{}
 	for _, i := range instances.Items {
 		if i.Namespace == contactPoint.Namespace {

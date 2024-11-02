@@ -1032,13 +1032,36 @@ GrafanaContactPointStatus defines the observed state of GrafanaContactPoint
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>NoMatchingInstances</b></td>
+        <td>boolean</td>
+        <td>
+          The contactpoint instanceSelector can't find matching grafana instances<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#grafanacontactpointstatusconditionsindex">conditions</a></b></td>
         <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hash</b></td>
+        <td>string</td>
         <td>
           INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 Important: Run "make" to regenerate code after modifying this file<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastResync</b></td>
+        <td>string</td>
+        <td>
+          Last time the contactpoint was resynced<br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

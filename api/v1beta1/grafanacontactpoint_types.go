@@ -17,6 +17,11 @@ limitations under the License.
 package v1beta1
 
 import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"time"
+
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -37,7 +42,7 @@ type GrafanaContactPointSpec struct {
 	// +kubebuilder:validation:Format=duration
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"
 	// +kubebuilder:default="10m"
-	ResyncPeriod metav1.Duration `json:"resyncPeriod,omitempty"`
+	ResyncPeriod string `json:"resyncPeriod,omitempty"`
 
 	// selects Grafanas for import
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
@@ -65,13 +70,21 @@ type GrafanaContactPointSpec struct {
 type GrafanaContactPointStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Conditions []metav1.Condition `json:"conditions"`
+	Hash string `json:"hash,omitempty"`
+	// The contactpoint instanceSelector can't find matching grafana instances
+	NoMatchingInstances bool `json:"NoMatchingInstances,omitempty"`
+	// Last time the contactpoint was resynced
+	LastResync metav1.Time        `json:"lastResync,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
 // GrafanaContactPoint is the Schema for the grafanacontactpoints API
+// +kubebuilder:printcolumn:name="No matching instances",type="boolean",JSONPath=".status.NoMatchingInstances",description=""
+// +kubebuilder:printcolumn:name="Last resync",type="date",format="date-time",JSONPath=".status.lastResync",description=""
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 // +kubebuilder:resource:categories={grafana-operator}
 type GrafanaContactPoint struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -100,4 +113,37 @@ func (in *GrafanaContactPoint) CustomUIDOrUID() string {
 
 func init() {
 	SchemeBuilder.Register(&GrafanaContactPoint{}, &GrafanaContactPointList{})
+}
+
+func (in *GrafanaContactPoint) Hash() string {
+	hash := sha256.New()
+	hash.Write([]byte(in.Spec.Name))
+	hash.Write([]byte(in.Spec.Type))
+	b, _ := json.Marshal(in.Spec.Settings) //nolint:errcheck
+	hash.Write(b)
+	return fmt.Sprintf("%x", hash.Sum(nil))
+}
+
+func (in *GrafanaContactPoint) Unchanged() bool {
+	return in.Hash() == in.Status.Hash
+}
+
+func (in *GrafanaContactPoint) GetResyncPeriod() time.Duration {
+	if in.Spec.ResyncPeriod == "" {
+		in.Spec.ResyncPeriod = LongDefaultResyncPeriod
+		return in.GetResyncPeriod()
+	}
+
+	duration, err := time.ParseDuration(in.Spec.ResyncPeriod)
+	if err != nil {
+		in.Spec.ResyncPeriod = LongDefaultResyncPeriod
+		return in.GetResyncPeriod()
+	}
+
+	return duration
+}
+
+func (in *GrafanaContactPoint) ResyncPeriodHasElapsed() bool {
+	deadline := in.Status.LastResync.Add(in.GetResyncPeriod())
+	return time.Now().After(deadline)
 }

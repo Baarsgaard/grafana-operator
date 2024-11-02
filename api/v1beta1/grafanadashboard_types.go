@@ -37,7 +37,6 @@ const (
 	DashboardSourceTypeJsonnet    DashboardSourceType = "jsonnet"
 	DashboardSourceTypeGrafanaCom DashboardSourceType = "grafana"
 	DashboardSourceConfigMap      DashboardSourceType = "configmap"
-	DefaultResyncPeriod                               = "5m"
 )
 
 type GrafanaDashboardDatasource struct {

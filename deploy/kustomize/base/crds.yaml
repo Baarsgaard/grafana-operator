@@ -324,7 +324,18 @@ spec:
     singular: grafanacontactpoint
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - jsonPath: .status.NoMatchingInstances
+      name: No matching instances
+      type: boolean
+    - format: date-time
+      jsonPath: .status.lastResync
+      name: Last resync
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: GrafanaContactPoint is the Schema for the grafanacontactpoints
@@ -520,10 +531,11 @@ spec:
           status:
             description: GrafanaContactPointStatus defines the observed state of GrafanaContactPoint
             properties:
+              NoMatchingInstances:
+                description: The contactpoint instanceSelector can't find matching
+                  grafana instances
+                type: boolean
               conditions:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -579,8 +591,15 @@ spec:
                   - type
                   type: object
                 type: array
-            required:
-            - conditions
+              hash:
+                description: |-
+                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                type: string
+              lastResync:
+                description: Last time the contactpoint was resynced
+                format: date-time
+                type: string
             type: object
         type: object
     served: true
