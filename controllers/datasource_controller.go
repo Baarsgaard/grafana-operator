@@ -196,25 +196,6 @@ func (r *GrafanaDatasourceReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{RequeueAfter: RequeueDelay}, err
 	}
 
-	if cr.IsUpdatedUID(datasource.UID) {
-		controllerLog.Info("datasource uid got updated, deleting datasources with the old uid")
-		err = r.onDatasourceDeleted(ctx, req.Namespace, req.Name)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: RequeueDelay}, err
-		}
-
-		// Clean up uid, so further reconcilications can track changes there
-		cr.Status.UID = ""
-
-		err = r.Client.Status().Update(ctx, cr)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: RequeueDelay}, err
-		}
-
-		// Status update should trigger the next reconciliation right away, no need to requeue for dashboard creation
-		return ctrl.Result{}, nil
-	}
-
 	success := true
 	for _, grafana := range instances.Items {
 		// check if this is a cross namespace import
@@ -258,8 +239,7 @@ func (r *GrafanaDatasourceReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if cr.ResyncPeriodHasElapsed() {
 			cr.Status.LastResync = metav1.Time{Time: time.Now()}
 		}
-		cr.Status.UID = datasource.UID
-		return ctrl.Result{RequeueAfter: cr.GetResyncPeriod()}, r.Client.Status().Update(ctx, cr)
+		return ctrl.Result{RequeueAfter: cr.Spec.ResyncPeriod.Duration}, r.Client.Status().Update(ctx, cr)
 	} else {
 		// if there was an issue with the datasource, update the status
 		return ctrl.Result{RequeueAfter: RequeueDelay}, r.Client.Status().Update(ctx, cr)

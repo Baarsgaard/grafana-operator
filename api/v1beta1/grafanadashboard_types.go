@@ -59,13 +59,9 @@ type GrafanaDashboardUrlAuthorization struct {
 // GrafanaDashboardSpec defines the desired state of GrafanaDashboard
 // +kubebuilder:validation:XValidation:rule="(has(self.folderUID) && !(has(self.folderRef))) || (has(self.folderRef) && !(has(self.folderUID))) || !(has(self.folderRef) && (has(self.folderUID)))", message="Only one of folderUID or folderRef can be declared at the same time"
 // +kubebuilder:validation:XValidation:rule="(has(self.folder) && !(has(self.folderRef) || has(self.folderUID))) || !(has(self.folder))", message="folder field cannot be set when folderUID or folderRef is already declared"
-// +kubebuilder:validation:XValidation:rule="((!has(oldSelf.uid) && !has(self.uid)) || (has(oldSelf.uid) && has(self.uid)))", message="spec.uid is immutable"
 type GrafanaDashboardSpec struct {
-	// Manually specify the uid for the dashboard, overwrites uids already present in the json model
-	// +optional
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="spec.uid is immutable"
-	CustomUID string `json:"uid,omitempty"`
-
+	GrafanaUIDSpec    `json:",inline"`
+	GrafanaCommonSpec `json:",inline"`
 	// dashboard json
 	// +optional
 	Json string `json:"json,omitempty"`
@@ -97,10 +93,6 @@ type GrafanaDashboardSpec struct {
 	// +optional
 	ConfigMapRef *v1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 
-	// selects Grafanas for import
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
-	InstanceSelector *metav1.LabelSelector `json:"instanceSelector"`
-
 	// folder assignment for dashboard
 	// +optional
 	FolderTitle string `json:"folder,omitempty"`
@@ -121,21 +113,9 @@ type GrafanaDashboardSpec struct {
 	// +optional
 	ContentCacheDuration metav1.Duration `json:"contentCacheDuration,omitempty"`
 
-	// how often the dashboard is refreshed, defaults to 5m if not set
-	// +optional
-	// +kubebuilder:validation:Type=string
-	// +kubebuilder:validation:Format=duration
-	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"
-	// +kubebuilder:default="5m"
-	ResyncPeriod string `json:"resyncPeriod,omitempty"`
-
 	// maps required data sources to existing ones
 	// +optional
 	Datasources []GrafanaDashboardDatasource `json:"datasources,omitempty"`
-
-	// allow to import this resources from an operator in a different namespace
-	// +optional
-	AllowCrossNamespaceImport *bool `json:"allowCrossNamespaceImport,omitempty"`
 
 	// environments variables as a map
 	// +optional
@@ -179,17 +159,11 @@ type GrafanaComDashboardReference struct {
 
 // GrafanaDashboardStatus defines the observed state of GrafanaDashboard
 type GrafanaDashboardStatus struct {
-	ContentCache     []byte      `json:"contentCache,omitempty"`
-	ContentTimestamp metav1.Time `json:"contentTimestamp,omitempty"`
-	ContentUrl       string      `json:"contentUrl,omitempty"`
-	Hash             string      `json:"hash,omitempty"`
-	// The dashboard instanceSelector can't find matching grafana instances
-	NoMatchingInstances bool `json:"NoMatchingInstances,omitempty"`
-	// Last time the dashboard was resynced
-	LastResync metav1.Time `json:"lastResync,omitempty"`
-	UID        string      `json:"uid,omitempty"`
-
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	GrafanaCommonStatus `json:",inline"`
+	ContentCache        []byte      `json:"contentCache,omitempty"`
+	ContentTimestamp    metav1.Time `json:"contentTimestamp,omitempty"`
+	ContentUrl          string      `json:"contentUrl,omitempty"`
+	UID                 string      `json:"uid,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -260,23 +234,8 @@ func (in *GrafanaDashboard) Unchanged(hash string) bool {
 }
 
 func (in *GrafanaDashboard) ResyncPeriodHasElapsed() bool {
-	deadline := in.Status.LastResync.Add(in.GetResyncPeriod())
+	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
 	return time.Now().After(deadline)
-}
-
-func (in *GrafanaDashboard) GetResyncPeriod() time.Duration {
-	if in.Spec.ResyncPeriod == "" {
-		in.Spec.ResyncPeriod = DefaultResyncPeriod
-		return in.GetResyncPeriod()
-	}
-
-	duration, err := time.ParseDuration(in.Spec.ResyncPeriod)
-	if err != nil {
-		in.Spec.ResyncPeriod = DefaultResyncPeriod
-		return in.GetResyncPeriod()
-	}
-
-	return duration
 }
 
 func (in *GrafanaDashboard) GetSourceTypes() []DashboardSourceType {

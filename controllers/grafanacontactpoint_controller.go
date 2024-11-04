@@ -149,7 +149,7 @@ func (r *GrafanaContactPointReconciler) Reconcile(ctx context.Context, req ctrl.
 		contactPoint.Status.LastResync = metav1.Time{Time: time.Now()}
 	}
 	contactPoint.Status.Hash = contactPoint.Hash()
-	return ctrl.Result{RequeueAfter: contactPoint.GetResyncPeriod()}, nil
+	return ctrl.Result{RequeueAfter: contactPoint.Spec.ResyncPeriod.Duration}, nil
 }
 
 func (r *GrafanaContactPointReconciler) reconcileWithInstance(ctx context.Context, instance *grafanav1beta1.Grafana, contactPoint *grafanav1beta1.GrafanaContactPoint) error {

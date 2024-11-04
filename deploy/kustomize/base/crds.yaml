@@ -449,7 +449,7 @@ spec:
                 - oncall
                 type: string
               uid:
-                description: Manually specify the UID the Folder is created with
+                description: Manually specify the UID
                 type: string
                 x-kubernetes-validations:
                 - message: spec.uid is immutable
@@ -529,11 +529,10 @@ spec:
               rule: ((!has(oldSelf.uid) && !has(self.uid)) || (has(oldSelf.uid) &&
                 has(self.uid)))
           status:
-            description: GrafanaContactPointStatus defines the observed state of GrafanaContactPoint
+            description: The most recent observed state of a Grafana resource
             properties:
               NoMatchingInstances:
-                description: The contactpoint instanceSelector can't find matching
-                  grafana instances
+                description: If the instanceSelector can't find matching grafana instances
                 type: boolean
               conditions:
                 items:
@@ -592,12 +591,12 @@ spec:
                   type: object
                 type: array
               hash:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
+                description: Detect resource changes
+                type: string
+              lastMessage:
                 type: string
               lastResync:
-                description: Last time the contactpoint was resynced
+                description: Last time the resource was synchronized
                 format: date-time
                 type: string
             type: object
@@ -661,8 +660,6 @@ spec:
             description: GrafanaDashboardSpec defines the desired state of GrafanaDashboard
             properties:
               allowCrossNamespaceImport:
-                description: allow to import this resources from an operator in a
-                  different namespace
                 type: boolean
               configMapRef:
                 description: dashboard from configmap
@@ -930,15 +927,12 @@ spec:
                   type: object
                 type: array
               resyncPeriod:
-                default: 5m
-                description: how often the dashboard is refreshed, defaults to 5m
-                  if not set
+                default: 10m
                 format: duration
                 pattern: ^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$
                 type: string
               uid:
-                description: Manually specify the uid for the dashboard, overwrites
-                  uids already present in the json model
+                description: Manually specify the UID
                 type: string
                 x-kubernetes-validations:
                 - message: spec.uid is immutable
@@ -1020,8 +1014,7 @@ spec:
             description: GrafanaDashboardStatus defines the observed state of GrafanaDashboard
             properties:
               NoMatchingInstances:
-                description: The dashboard instanceSelector can't find matching grafana
-                  instances
+                description: If the instanceSelector can't find matching grafana instances
                 type: boolean
               conditions:
                 items:
@@ -1088,9 +1081,12 @@ spec:
               contentUrl:
                 type: string
               hash:
+                description: Detect resource changes
+                type: string
+              lastMessage:
                 type: string
               lastResync:
-                description: Last time the dashboard was resynced
+                description: Last time the resource was synchronized
                 format: date-time
                 type: string
               uid:
@@ -1156,8 +1152,6 @@ spec:
             description: GrafanaDatasourceSpec defines the desired state of GrafanaDatasource
             properties:
               allowCrossNamespaceImport:
-                description: allow to import this resources from an operator in a
-                  different namespace
                 type: boolean
               datasource:
                 properties:
@@ -1196,7 +1190,7 @@ spec:
                     type: string
                 type: object
               instanceSelector:
-                description: selects Grafana instances for import
+                description: selects Grafanas for import
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -1258,12 +1252,16 @@ spec:
                   type: object
                 type: array
               resyncPeriod:
-                default: 5m
-                description: how often the datasource is refreshed, defaults to 5m
-                  if not set
+                default: 10m
                 format: duration
                 pattern: ^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$
                 type: string
+              uid:
+                description: Manually specify the UID
+                type: string
+                x-kubernetes-validations:
+                - message: spec.uid is immutable
+                  rule: self == oldSelf
               valuesFrom:
                 description: environments variables from secrets or config maps
                 items:
@@ -1334,22 +1332,80 @@ spec:
             - datasource
             - instanceSelector
             type: object
+            x-kubernetes-validations:
+            - message: spec.uid is immutable
+              rule: ((!has(oldSelf.uid) && !has(self.uid)) || (has(oldSelf.uid) &&
+                has(self.uid)))
           status:
-            description: GrafanaDatasourceStatus defines the observed state of GrafanaDatasource
+            description: The most recent observed state of a Grafana resource
             properties:
               NoMatchingInstances:
-                description: The datasource instanceSelector can't find matching grafana
-                  instances
+                description: If the instanceSelector can't find matching grafana instances
                 type: boolean
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
               hash:
+                description: Detect resource changes
                 type: string
               lastMessage:
                 type: string
               lastResync:
-                description: Last time the datasource was resynced
+                description: Last time the resource was synchronized
                 format: date-time
-                type: string
-              uid:
                 type: string
             type: object
         type: object
@@ -1408,11 +1464,9 @@ spec:
             description: GrafanaFolderSpec defines the desired state of GrafanaFolder
             properties:
               allowCrossNamespaceImport:
-                description: Enable matching Grafana instances outside the current
-                  namespace
                 type: boolean
               instanceSelector:
-                description: Selects Grafanas for import
+                description: selects Grafanas for import
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -1473,9 +1527,7 @@ spec:
                   from Grafana
                 type: string
               resyncPeriod:
-                default: 5m
-                description: How often the folder is synced, defaults to 5m if not
-                  set
+                default: 10m
                 format: duration
                 pattern: ^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$
                 type: string
@@ -1483,7 +1535,7 @@ spec:
                 description: Display name of the folder in Grafana
                 type: string
               uid:
-                description: Manually specify the UID the Folder is created with
+                description: Manually specify the UID
                 type: string
                 x-kubernetes-validations:
                 - message: spec.uid is immutable
@@ -1500,11 +1552,10 @@ spec:
               rule: ((!has(oldSelf.uid) && !has(self.uid)) || (has(oldSelf.uid) &&
                 has(self.uid)))
           status:
-            description: GrafanaFolderStatus defines the observed state of GrafanaFolder
+            description: The most recent observed state of a Grafana resource
             properties:
               NoMatchingInstances:
-                description: The folder instanceSelector can't find matching grafana
-                  instances
+                description: If the instanceSelector can't find matching grafana instances
                 type: boolean
               conditions:
                 items:
@@ -1563,12 +1614,12 @@ spec:
                   type: object
                 type: array
               hash:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
+                description: Detect resource changes
+                type: string
+              lastMessage:
                 type: string
               lastResync:
-                description: Last time the folder was resynced
+                description: Last time the resource was synchronized
                 format: date-time
                 type: string
             type: object
@@ -1622,6 +1673,8 @@ spec:
             description: GrafanaNotificationPolicySpec defines the desired state of
               GrafanaNotificationPolicy
             properties:
+              allowCrossNamespaceImport:
+                type: boolean
               instanceSelector:
                 description: selects Grafanas for import
                 properties:

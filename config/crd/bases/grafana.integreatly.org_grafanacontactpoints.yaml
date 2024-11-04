@@ -141,7 +141,7 @@ spec:
                 - oncall
                 type: string
               uid:
-                description: Manually specify the UID the Folder is created with
+                description: Manually specify the UID
                 type: string
                 x-kubernetes-validations:
                 - message: spec.uid is immutable
@@ -221,11 +221,10 @@ spec:
               rule: ((!has(oldSelf.uid) && !has(self.uid)) || (has(oldSelf.uid) &&
                 has(self.uid)))
           status:
-            description: GrafanaContactPointStatus defines the observed state of GrafanaContactPoint
+            description: The most recent observed state of a Grafana resource
             properties:
               NoMatchingInstances:
-                description: The contactpoint instanceSelector can't find matching
-                  grafana instances
+                description: If the instanceSelector can't find matching grafana instances
                 type: boolean
               conditions:
                 items:
@@ -284,12 +283,12 @@ spec:
                   type: object
                 type: array
               hash:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
+                description: Detect resource changes
+                type: string
+              lastMessage:
                 type: string
               lastResync:
-                description: Last time the contactpoint was resynced
+                description: Last time the resource was synchronized
                 format: date-time
                 type: string
             type: object

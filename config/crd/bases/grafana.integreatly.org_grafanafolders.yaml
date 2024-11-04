@@ -49,11 +49,9 @@ spec:
             description: GrafanaFolderSpec defines the desired state of GrafanaFolder
             properties:
               allowCrossNamespaceImport:
-                description: Enable matching Grafana instances outside the current
-                  namespace
                 type: boolean
               instanceSelector:
-                description: Selects Grafanas for import
+                description: selects Grafanas for import
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -114,9 +112,7 @@ spec:
                   from Grafana
                 type: string
               resyncPeriod:
-                default: 5m
-                description: How often the folder is synced, defaults to 5m if not
-                  set
+                default: 10m
                 format: duration
                 pattern: ^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$
                 type: string
@@ -124,7 +120,7 @@ spec:
                 description: Display name of the folder in Grafana
                 type: string
               uid:
-                description: Manually specify the UID the Folder is created with
+                description: Manually specify the UID
                 type: string
                 x-kubernetes-validations:
                 - message: spec.uid is immutable
@@ -141,11 +137,10 @@ spec:
               rule: ((!has(oldSelf.uid) && !has(self.uid)) || (has(oldSelf.uid) &&
                 has(self.uid)))
           status:
-            description: GrafanaFolderStatus defines the observed state of GrafanaFolder
+            description: The most recent observed state of a Grafana resource
             properties:
               NoMatchingInstances:
-                description: The folder instanceSelector can't find matching grafana
-                  instances
+                description: If the instanceSelector can't find matching grafana instances
                 type: boolean
               conditions:
                 items:
@@ -204,12 +199,12 @@ spec:
                   type: object
                 type: array
               hash:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
+                description: Detect resource changes
+                type: string
+              lastMessage:
                 type: string
               lastResync:
-                description: Last time the folder was resynced
+                description: Last time the resource was synchronized
                 format: date-time
                 type: string
             type: object

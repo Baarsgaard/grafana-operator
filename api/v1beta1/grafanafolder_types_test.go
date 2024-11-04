@@ -58,7 +58,7 @@ func TestGrafanaFolder_GetUID(t *testing.T) {
 			cr: GrafanaFolder{
 				ObjectMeta: metav1.ObjectMeta{UID: "92fd2e0a-ad63-4fcf-9890-68a527cbd674"},
 				Spec: GrafanaFolderSpec{
-					CustomUID: "custom-uid",
+					GrafanaUIDSpec: GrafanaUIDSpec{CustomUID: "custom-uid"},
 				},
 			},
 			want: "custom-uid",

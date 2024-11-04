@@ -43,6 +43,8 @@ spec:
             description: GrafanaNotificationPolicySpec defines the desired state of
               GrafanaNotificationPolicy
             properties:
+              allowCrossNamespaceImport:
+                type: boolean
               instanceSelector:
                 description: selects Grafanas for import
                 properties:

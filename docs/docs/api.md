@@ -670,7 +670,7 @@ GrafanaContactPoint is the Schema for the grafanacontactpoints API
         <td><b><a href="#grafanacontactpointstatus">status</a></b></td>
         <td>object</td>
         <td>
-          GrafanaContactPointStatus defines the observed state of GrafanaContactPoint<br/>
+          The most recent observed state of a Grafana resource<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -753,7 +753,7 @@ GrafanaContactPointSpec defines the desired state of GrafanaContactPoint
         <td><b>uid</b></td>
         <td>string</td>
         <td>
-          Manually specify the UID the Folder is created with<br/>
+          Manually specify the UID<br/>
           <br/>
             <i>Validations</i>:<li>self == oldSelf: spec.uid is immutable</li>
         </td>
@@ -1020,7 +1020,7 @@ More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/nam
 
 
 
-GrafanaContactPointStatus defines the observed state of GrafanaContactPoint
+The most recent observed state of a Grafana resource
 
 <table>
     <thead>
@@ -1035,7 +1035,7 @@ GrafanaContactPointStatus defines the observed state of GrafanaContactPoint
         <td><b>NoMatchingInstances</b></td>
         <td>boolean</td>
         <td>
-          The contactpoint instanceSelector can't find matching grafana instances<br/>
+          If the instanceSelector can't find matching grafana instances<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1049,15 +1049,21 @@ GrafanaContactPointStatus defines the observed state of GrafanaContactPoint
         <td><b>hash</b></td>
         <td>string</td>
         <td>
-          INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-Important: Run "make" to regenerate code after modifying this file<br/>
+          Detect resource changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastMessage</b></td>
+        <td>string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>lastResync</b></td>
         <td>string</td>
         <td>
-          Last time the contactpoint was resynced<br/>
+          Last time the resource was synchronized<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
@@ -1227,7 +1233,7 @@ GrafanaDashboardSpec defines the desired state of GrafanaDashboard
         <td><b>allowCrossNamespaceImport</b></td>
         <td>boolean</td>
         <td>
-          allow to import this resources from an operator in a different namespace<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1334,17 +1340,17 @@ GrafanaDashboardSpec defines the desired state of GrafanaDashboard
         <td><b>resyncPeriod</b></td>
         <td>string</td>
         <td>
-          how often the dashboard is refreshed, defaults to 5m if not set<br/>
+          <br/>
           <br/>
             <i>Format</i>: duration<br/>
-            <i>Default</i>: 5m<br/>
+            <i>Default</i>: 10m<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>uid</b></td>
         <td>string</td>
         <td>
-          Manually specify the uid for the dashboard, overwrites uids already present in the json model<br/>
+          Manually specify the UID<br/>
           <br/>
             <i>Validations</i>:<li>self == oldSelf: spec.uid is immutable</li>
         </td>
@@ -2113,7 +2119,7 @@ GrafanaDashboardStatus defines the observed state of GrafanaDashboard
         <td><b>NoMatchingInstances</b></td>
         <td>boolean</td>
         <td>
-          The dashboard instanceSelector can't find matching grafana instances<br/>
+          If the instanceSelector can't find matching grafana instances<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2152,6 +2158,13 @@ GrafanaDashboardStatus defines the observed state of GrafanaDashboard
         <td><b>hash</b></td>
         <td>string</td>
         <td>
+          Detect resource changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastMessage</b></td>
+        <td>string</td>
+        <td>
           <br/>
         </td>
         <td>false</td>
@@ -2159,7 +2172,7 @@ GrafanaDashboardStatus defines the observed state of GrafanaDashboard
         <td><b>lastResync</b></td>
         <td>string</td>
         <td>
-          Last time the dashboard was resynced<br/>
+          Last time the resource was synchronized<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
@@ -2292,13 +2305,15 @@ GrafanaDatasource is the Schema for the grafanadatasources API
         <td>object</td>
         <td>
           GrafanaDatasourceSpec defines the desired state of GrafanaDatasource<br/>
+          <br/>
+            <i>Validations</i>:<li>((!has(oldSelf.uid) && !has(self.uid)) || (has(oldSelf.uid) && has(self.uid))): spec.uid is immutable</li>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#grafanadatasourcestatus">status</a></b></td>
         <td>object</td>
         <td>
-          GrafanaDatasourceStatus defines the observed state of GrafanaDatasource<br/>
+          The most recent observed state of a Grafana resource<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2332,7 +2347,7 @@ GrafanaDatasourceSpec defines the desired state of GrafanaDatasource
         <td><b><a href="#grafanadatasourcespecinstanceselector">instanceSelector</a></b></td>
         <td>object</td>
         <td>
-          selects Grafana instances for import<br/>
+          selects Grafanas for import<br/>
           <br/>
             <i>Validations</i>:<li>self == oldSelf: Value is immutable</li>
         </td>
@@ -2341,7 +2356,7 @@ GrafanaDatasourceSpec defines the desired state of GrafanaDatasource
         <td><b>allowCrossNamespaceImport</b></td>
         <td>boolean</td>
         <td>
-          allow to import this resources from an operator in a different namespace<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2355,10 +2370,19 @@ GrafanaDatasourceSpec defines the desired state of GrafanaDatasource
         <td><b>resyncPeriod</b></td>
         <td>string</td>
         <td>
-          how often the datasource is refreshed, defaults to 5m if not set<br/>
+          <br/>
           <br/>
             <i>Format</i>: duration<br/>
-            <i>Default</i>: 5m<br/>
+            <i>Default</i>: 10m<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>uid</b></td>
+        <td>string</td>
+        <td>
+          Manually specify the UID<br/>
+          <br/>
+            <i>Validations</i>:<li>self == oldSelf: spec.uid is immutable</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2497,7 +2521,7 @@ GrafanaDatasourceSpec defines the desired state of GrafanaDatasource
 
 
 
-selects Grafana instances for import
+selects Grafanas for import
 
 <table>
     <thead>
@@ -2777,7 +2801,7 @@ More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/nam
 
 
 
-GrafanaDatasourceStatus defines the observed state of GrafanaDatasource
+The most recent observed state of a Grafana resource
 
 <table>
     <thead>
@@ -2792,14 +2816,21 @@ GrafanaDatasourceStatus defines the observed state of GrafanaDatasource
         <td><b>NoMatchingInstances</b></td>
         <td>boolean</td>
         <td>
-          The datasource instanceSelector can't find matching grafana instances<br/>
+          If the instanceSelector can't find matching grafana instances<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#grafanadatasourcestatusconditionsindex">conditions</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>hash</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Detect resource changes<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2813,16 +2844,86 @@ GrafanaDatasourceStatus defines the observed state of GrafanaDatasource
         <td><b>lastResync</b></td>
         <td>string</td>
         <td>
-          Last time the datasource was resynced<br/>
+          Last time the resource was synchronized<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
         <td>false</td>
-      </tr><tr>
-        <td><b>uid</b></td>
+      </tr></tbody>
+</table>
+
+
+### GrafanaDatasource.status.conditions[index]
+<sup><sup>[↩ Parent](#grafanadatasourcestatus)</sup></sup>
+
+
+
+Condition contains details for one aspect of the current state of this API Resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>lastTransitionTime</b></td>
         <td>string</td>
         <td>
+          lastTransitionTime is the last time the condition transitioned from one status to another.
+This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
           <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          message is a human readable message indicating details about the transition.
+This may be an empty string.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>reason</b></td>
+        <td>string</td>
+        <td>
+          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+Producers of specific condition types may define expected values and meanings for this field,
+and whether the values are considered a guaranteed API.
+The value should be a CamelCase string.
+This field may not be empty.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>status</b></td>
+        <td>enum</td>
+        <td>
+          status of the condition, one of True, False, Unknown.<br/>
+          <br/>
+            <i>Enum</i>: True, False, Unknown<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          type of condition in CamelCase or in foo.example.com/CamelCase.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>observedGeneration</b></td>
+        <td>integer</td>
+        <td>
+          observedGeneration represents the .metadata.generation that the condition was set based upon.
+For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+with respect to the current state of the instance.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+            <i>Minimum</i>: 0<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2877,7 +2978,7 @@ GrafanaFolder is the Schema for the grafanafolders API
         <td><b><a href="#grafanafolderstatus">status</a></b></td>
         <td>object</td>
         <td>
-          GrafanaFolderStatus defines the observed state of GrafanaFolder<br/>
+          The most recent observed state of a Grafana resource<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2904,7 +3005,7 @@ GrafanaFolderSpec defines the desired state of GrafanaFolder
         <td><b><a href="#grafanafolderspecinstanceselector">instanceSelector</a></b></td>
         <td>object</td>
         <td>
-          Selects Grafanas for import<br/>
+          selects Grafanas for import<br/>
           <br/>
             <i>Validations</i>:<li>self == oldSelf: Value is immutable</li>
         </td>
@@ -2913,7 +3014,7 @@ GrafanaFolderSpec defines the desired state of GrafanaFolder
         <td><b>allowCrossNamespaceImport</b></td>
         <td>boolean</td>
         <td>
-          Enable matching Grafana instances outside the current namespace<br/>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2941,10 +3042,10 @@ GrafanaFolderSpec defines the desired state of GrafanaFolder
         <td><b>resyncPeriod</b></td>
         <td>string</td>
         <td>
-          How often the folder is synced, defaults to 5m if not set<br/>
+          <br/>
           <br/>
             <i>Format</i>: duration<br/>
-            <i>Default</i>: 5m<br/>
+            <i>Default</i>: 10m<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2958,7 +3059,7 @@ GrafanaFolderSpec defines the desired state of GrafanaFolder
         <td><b>uid</b></td>
         <td>string</td>
         <td>
-          Manually specify the UID the Folder is created with<br/>
+          Manually specify the UID<br/>
           <br/>
             <i>Validations</i>:<li>self == oldSelf: spec.uid is immutable</li>
         </td>
@@ -2972,7 +3073,7 @@ GrafanaFolderSpec defines the desired state of GrafanaFolder
 
 
 
-Selects Grafanas for import
+selects Grafanas for import
 
 <table>
     <thead>
@@ -3054,7 +3155,7 @@ merge patch.<br/>
 
 
 
-GrafanaFolderStatus defines the observed state of GrafanaFolder
+The most recent observed state of a Grafana resource
 
 <table>
     <thead>
@@ -3069,7 +3170,7 @@ GrafanaFolderStatus defines the observed state of GrafanaFolder
         <td><b>NoMatchingInstances</b></td>
         <td>boolean</td>
         <td>
-          The folder instanceSelector can't find matching grafana instances<br/>
+          If the instanceSelector can't find matching grafana instances<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3083,15 +3184,21 @@ GrafanaFolderStatus defines the observed state of GrafanaFolder
         <td><b>hash</b></td>
         <td>string</td>
         <td>
-          INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-Important: Run "make" to regenerate code after modifying this file<br/>
+          Detect resource changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>lastMessage</b></td>
+        <td>string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>lastResync</b></td>
         <td>string</td>
         <td>
-          Last time the folder was resynced<br/>
+          Last time the resource was synchronized<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
@@ -3262,6 +3369,13 @@ GrafanaNotificationPolicySpec defines the desired state of GrafanaNotificationPo
           Routes for alerts to match against<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>allowCrossNamespaceImport</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>resyncPeriod</b></td>
         <td>string</td>

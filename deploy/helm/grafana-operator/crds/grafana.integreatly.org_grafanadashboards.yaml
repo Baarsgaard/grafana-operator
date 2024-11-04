@@ -53,8 +53,6 @@ spec:
             description: GrafanaDashboardSpec defines the desired state of GrafanaDashboard
             properties:
               allowCrossNamespaceImport:
-                description: allow to import this resources from an operator in a
-                  different namespace
                 type: boolean
               configMapRef:
                 description: dashboard from configmap
@@ -322,15 +320,12 @@ spec:
                   type: object
                 type: array
               resyncPeriod:
-                default: 5m
-                description: how often the dashboard is refreshed, defaults to 5m
-                  if not set
+                default: 10m
                 format: duration
                 pattern: ^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$
                 type: string
               uid:
-                description: Manually specify the uid for the dashboard, overwrites
-                  uids already present in the json model
+                description: Manually specify the UID
                 type: string
                 x-kubernetes-validations:
                 - message: spec.uid is immutable
@@ -412,8 +407,7 @@ spec:
             description: GrafanaDashboardStatus defines the observed state of GrafanaDashboard
             properties:
               NoMatchingInstances:
-                description: The dashboard instanceSelector can't find matching grafana
-                  instances
+                description: If the instanceSelector can't find matching grafana instances
                 type: boolean
               conditions:
                 items:
@@ -480,9 +474,12 @@ spec:
               contentUrl:
                 type: string
               hash:
+                description: Detect resource changes
+                type: string
+              lastMessage:
                 type: string
               lastResync:
-                description: Last time the dashboard was resynced
+                description: Last time the resource was synchronized
                 format: date-time
                 type: string
               uid:

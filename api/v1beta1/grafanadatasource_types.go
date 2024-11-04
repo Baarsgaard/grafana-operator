@@ -17,10 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,11 +55,9 @@ type GrafanaDatasourceInternal struct {
 
 // GrafanaDatasourceSpec defines the desired state of GrafanaDatasource
 type GrafanaDatasourceSpec struct {
-	Datasource *GrafanaDatasourceInternal `json:"datasource"`
-
-	// selects Grafana instances for import
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
-	InstanceSelector *metav1.LabelSelector `json:"instanceSelector"`
+	GrafanaUIDSpec    `json:",inline"`
+	GrafanaCommonSpec `json:",inline"`
+	Datasource        *GrafanaDatasourceInternal `json:"datasource"`
 
 	// plugins
 	// +optional
@@ -72,29 +67,6 @@ type GrafanaDatasourceSpec struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=99
 	ValuesFrom []ValueFrom `json:"valuesFrom,omitempty"`
-
-	// how often the datasource is refreshed, defaults to 5m if not set
-	// +optional
-	// +kubebuilder:validation:Type=string
-	// +kubebuilder:validation:Format=duration
-	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"
-	// +kubebuilder:default="5m"
-	ResyncPeriod string `json:"resyncPeriod,omitempty"`
-
-	// allow to import this resources from an operator in a different namespace
-	// +optional
-	AllowCrossNamespaceImport *bool `json:"allowCrossNamespaceImport,omitempty"`
-}
-
-// GrafanaDatasourceStatus defines the observed state of GrafanaDatasource
-type GrafanaDatasourceStatus struct {
-	Hash        string `json:"hash,omitempty"`
-	LastMessage string `json:"lastMessage,omitempty"`
-	// The datasource instanceSelector can't find matching grafana instances
-	NoMatchingInstances bool `json:"NoMatchingInstances,omitempty"`
-	// Last time the datasource was resynced
-	LastResync metav1.Time `json:"lastResync,omitempty"`
-	UID        string      `json:"uid,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -109,8 +81,8 @@ type GrafanaDatasource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GrafanaDatasourceSpec   `json:"spec,omitempty"`
-	Status GrafanaDatasourceStatus `json:"status,omitempty"`
+	Spec   GrafanaDatasourceSpec `json:"spec,omitempty"`
+	Status GrafanaCommonStatus   `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -122,61 +94,8 @@ type GrafanaDatasourceList struct {
 	Items           []GrafanaDatasource `json:"items"`
 }
 
-func (in *GrafanaDatasource) GetResyncPeriod() time.Duration {
-	if in.Spec.ResyncPeriod == "" {
-		in.Spec.ResyncPeriod = DefaultResyncPeriod
-		return in.GetResyncPeriod()
-	}
-
-	duration, err := time.ParseDuration(in.Spec.ResyncPeriod)
-	if err != nil {
-		in.Spec.ResyncPeriod = DefaultResyncPeriod
-		return in.GetResyncPeriod()
-	}
-
-	return duration
-}
-
-func (in *GrafanaDatasource) ResyncPeriodHasElapsed() bool {
-	deadline := in.Status.LastResync.Add(in.GetResyncPeriod())
-	return time.Now().After(deadline)
-}
-
 func (in *GrafanaDatasource) Unchanged(hash string) bool {
 	return in.Status.Hash == hash
-}
-
-func (in *GrafanaDatasource) IsUpdatedUID(uid string) bool {
-	// Datasource has just been created, status is not yet updated
-	if in.Status.UID == "" {
-		return false
-	}
-
-	if uid == "" {
-		uid = string(in.UID)
-	}
-
-	return in.Status.UID != uid
-}
-
-func (in *GrafanaDatasource) ExpandVariables(variables map[string][]byte) ([]byte, error) {
-	if in.Spec.Datasource == nil {
-		return nil, errors.New("data source is empty, can't expand variables")
-	}
-
-	raw, err := json.Marshal(in.Spec.Datasource)
-	if err != nil {
-		return nil, err
-	}
-
-	for key, value := range variables {
-		patterns := []string{fmt.Sprintf("$%v", key), fmt.Sprintf("${%v}", key)}
-		for _, pattern := range patterns {
-			raw = bytes.ReplaceAll(raw, []byte(pattern), value)
-		}
-	}
-
-	return raw, nil
 }
 
 func (in *GrafanaDatasource) IsAllowCrossNamespaceImport() bool {
@@ -197,4 +116,9 @@ func (in *GrafanaDatasourceList) Find(namespace string, name string) *GrafanaDat
 
 func init() {
 	SchemeBuilder.Register(&GrafanaDatasource{}, &GrafanaDatasourceList{})
+}
+
+func (in *GrafanaDatasource) ResyncPeriodHasElapsed() bool {
+	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
+	return time.Now().After(deadline)
 }
