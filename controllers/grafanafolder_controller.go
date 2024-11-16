@@ -202,7 +202,7 @@ func (r *GrafanaFolderReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: RequeueDelay}, nil
 	}
 
-	removeNoMatchingInstance(&folder.Status.Conditions)
+	removeNoMatchingInstancesCondition(&folder.Status.Conditions)
 	folder.Status.NoMatchingInstances = false
 	controllerLog.Info("found matching Grafana instances for folder", "count", len(instances))
 

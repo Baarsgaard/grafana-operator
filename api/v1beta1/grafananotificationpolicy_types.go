@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,6 +130,8 @@ func (r *Route) ToModelRoute() *models.Route {
 // GrafanaNotificationPolicyStatus defines the observed state of GrafanaNotificationPolicy
 type GrafanaNotificationPolicyStatus struct {
 	Conditions []metav1.Condition `json:"conditions"`
+	// Last time the dashboard was resynced
+	LastResync metav1.Time `json:"lastResync,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -159,4 +162,24 @@ type GrafanaNotificationPolicyList struct {
 
 func init() {
 	SchemeBuilder.Register(&GrafanaNotificationPolicy{}, &GrafanaNotificationPolicyList{})
+}
+
+func (in *GrafanaNotificationPolicy) ResyncPeriodHasElapsed() bool {
+	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
+	return time.Now().After(deadline)
+}
+
+func (in *GrafanaNotificationPolicy) MatchLabels() *metav1.LabelSelector {
+	return in.Spec.InstanceSelector
+}
+
+func (in *GrafanaNotificationPolicy) MatchNamespace() string {
+	return in.ObjectMeta.Namespace
+}
+
+func (in *GrafanaNotificationPolicy) AllowCrossNamespace() bool {
+	if in.Spec.AllowCrossNamespaceImport != nil {
+		return *in.Spec.AllowCrossNamespaceImport
+	}
+	return false
 }

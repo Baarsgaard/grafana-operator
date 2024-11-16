@@ -81,7 +81,9 @@ type GrafanaDatasourceSpec struct {
 
 // GrafanaDatasourceStatus defines the observed state of GrafanaDatasource
 type GrafanaDatasourceStatus struct {
-	Hash        string `json:"hash,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Hash       string             `json:"hash,omitempty"`
+	// Deprecated: See status.conditions
 	LastMessage string `json:"lastMessage,omitempty"`
 	// The datasource instanceSelector can't find matching grafana instances
 	NoMatchingInstances bool `json:"NoMatchingInstances,omitempty"`
@@ -115,11 +117,6 @@ type GrafanaDatasourceList struct {
 	Items           []GrafanaDatasource `json:"items"`
 }
 
-func (in *GrafanaDatasource) ResyncPeriodHasElapsed() bool {
-	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
-	return time.Now().After(deadline)
-}
-
 func (in *GrafanaDatasource) Unchanged(hash string) bool {
 	return in.Status.Hash == hash
 }
@@ -146,13 +143,6 @@ func (in *GrafanaDatasource) CustomUIDOrUID() string {
 	return string(in.ObjectMeta.UID)
 }
 
-func (in *GrafanaDatasource) IsAllowCrossNamespaceImport() bool {
-	if in.Spec.AllowCrossNamespaceImport != nil {
-		return *in.Spec.AllowCrossNamespaceImport
-	}
-	return false
-}
-
 func (in *GrafanaDatasourceList) Find(namespace string, name string) *GrafanaDatasource {
 	for _, datasource := range in.Items {
 		if datasource.Namespace == namespace && datasource.Name == name {
@@ -164,4 +154,24 @@ func (in *GrafanaDatasourceList) Find(namespace string, name string) *GrafanaDat
 
 func init() {
 	SchemeBuilder.Register(&GrafanaDatasource{}, &GrafanaDatasourceList{})
+}
+
+func (in *GrafanaDatasource) ResyncPeriodHasElapsed() bool {
+	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
+	return time.Now().After(deadline)
+}
+
+func (in *GrafanaDatasource) MatchLabels() *metav1.LabelSelector {
+	return in.Spec.InstanceSelector
+}
+
+func (in *GrafanaDatasource) MatchNamespace() string {
+	return in.ObjectMeta.Namespace
+}
+
+func (in *GrafanaDatasource) AllowCrossNamespace() bool {
+	if in.Spec.AllowCrossNamespaceImport != nil {
+		return *in.Spec.AllowCrossNamespaceImport
+	}
+	return false
 }

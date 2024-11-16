@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -54,6 +56,8 @@ type GrafanaContactPointStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Conditions []metav1.Condition `json:"conditions"`
+	// Last time the dashboard was resynced
+	LastResync metav1.Time `json:"lastResync,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -88,4 +92,24 @@ func (in *GrafanaContactPoint) CustomUIDOrUID() string {
 
 func init() {
 	SchemeBuilder.Register(&GrafanaContactPoint{}, &GrafanaContactPointList{})
+}
+
+func (in *GrafanaContactPoint) ResyncPeriodHasElapsed() bool {
+	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
+	return time.Now().After(deadline)
+}
+
+func (in *GrafanaContactPoint) MatchLabels() *metav1.LabelSelector {
+	return in.Spec.InstanceSelector
+}
+
+func (in *GrafanaContactPoint) MatchNamespace() string {
+	return in.ObjectMeta.Namespace
+}
+
+func (in *GrafanaContactPoint) AllowCrossNamespace() bool {
+	if in.Spec.AllowCrossNamespaceImport != nil {
+		return *in.Spec.AllowCrossNamespaceImport
+	}
+	return false
 }

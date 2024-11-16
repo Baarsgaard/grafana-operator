@@ -245,11 +245,6 @@ func (in *GrafanaDashboard) Unchanged(hash string) bool {
 	return in.Status.Hash == hash
 }
 
-func (in *GrafanaDashboard) ResyncPeriodHasElapsed() bool {
-	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
-	return time.Now().After(deadline)
-}
-
 func (in *GrafanaDashboard) GetSourceTypes() []DashboardSourceType {
 	var sourceTypes []DashboardSourceType
 
@@ -307,13 +302,6 @@ func (in *GrafanaDashboardStatus) getContentCache(url string, cacheDuration time
 	return cache
 }
 
-func (in *GrafanaDashboard) IsAllowCrossNamespaceImport() bool {
-	if in.Spec.AllowCrossNamespaceImport != nil {
-		return *in.Spec.AllowCrossNamespaceImport
-	}
-	return false
-}
-
 func (in *GrafanaDashboard) IsUpdatedUID(uid string) bool {
 	// Dashboard has just been created, status is not yet updated
 	if in.Status.UID == "" {
@@ -361,4 +349,24 @@ func (in *GrafanaDashboardList) Find(namespace string, name string) *GrafanaDash
 
 func init() {
 	SchemeBuilder.Register(&GrafanaDashboard{}, &GrafanaDashboardList{})
+}
+
+func (in *GrafanaDashboard) ResyncPeriodHasElapsed() bool {
+	deadline := in.Status.LastResync.Add(in.Spec.ResyncPeriod.Duration)
+	return time.Now().After(deadline)
+}
+
+func (in *GrafanaDashboard) MatchLabels() *metav1.LabelSelector {
+	return in.Spec.InstanceSelector
+}
+
+func (in *GrafanaDashboard) MatchNamespace() string {
+	return in.ObjectMeta.Namespace
+}
+
+func (in *GrafanaDashboard) AllowCrossNamespace() bool {
+	if in.Spec.AllowCrossNamespaceImport != nil {
+		return *in.Spec.AllowCrossNamespaceImport
+	}
+	return false
 }

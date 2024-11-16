@@ -108,25 +108,19 @@ func (r *GrafanaNotificationPolicyReconciler) Reconcile(ctx context.Context, req
 		}
 	}()
 
-	instances, err := GetMatchingInstances(ctx, r.Client, notificationPolicy.Spec.InstanceSelector)
-	if err != nil {
-		setNoMatchingInstance(&notificationPolicy.Status.Conditions, notificationPolicy.Generation, "ErrFetchingInstances", fmt.Sprintf("error occurred during fetching of instances: %s", err.Error()))
-		meta.RemoveStatusCondition(&notificationPolicy.Status.Conditions, conditionNotificationPolicySynchronized)
-		r.Log.Error(err, "could not find matching instances")
-		return ctrl.Result{RequeueAfter: RequeueDelay}, err
+	instances, err := GetScopedMatchingInstances(controllerLog, ctx, r.Client, notificationPolicy)
+	if err != nil || len(instances) == 0 {
+		setNoMatchingInstancesCondition(&notificationPolicy.Status.Conditions, notificationPolicy.Generation, err)
+		controllerLog.Error(err, "could not find matching instances", "name", notificationPolicy.Name, "namespace", notificationPolicy.Namespace)
+		return ctrl.Result{RequeueAfter: RequeueDelay}, nil
 	}
 
-	if len(instances.Items) == 0 {
-		meta.RemoveStatusCondition(&notificationPolicy.Status.Conditions, conditionNotificationPolicySynchronized)
-		setNoMatchingInstance(&notificationPolicy.Status.Conditions, notificationPolicy.Generation, "EmptyAPIReply", "Instances could not be fetched, reconciliation will be retried")
-		return ctrl.Result{}, nil
-	}
-
-	removeNoMatchingInstance(&notificationPolicy.Status.Conditions)
+	removeNoMatchingInstancesCondition(&notificationPolicy.Status.Conditions)
+	controllerLog.Info("found matching Grafana instances for notification policy", "count", len(instances))
 
 	applyErrors := make(map[string]string)
 	appliedCount := 0
-	for _, grafana := range instances.Items {
+	for _, grafana := range instances {
 		// can be removed in go 1.22+
 		grafana := grafana
 		appliedPolicy := grafana.Annotations[annotationAppliedNotificationPolicy]
@@ -135,11 +129,6 @@ func (r *GrafanaNotificationPolicyReconciler) Reconcile(ctx context.Context, req
 			continue
 		}
 		appliedCount++
-
-		if grafana.Status.Stage != grafanav1beta1.OperatorStageComplete || grafana.Status.StageStatus != grafanav1beta1.OperatorStageResultSuccess {
-			controllerLog.Info("grafana instance not ready", "grafana", grafana.Name)
-			continue
-		}
 
 		err := r.reconcileWithInstance(ctx, &grafana, notificationPolicy)
 		if err != nil {
@@ -202,19 +191,19 @@ func (r *GrafanaNotificationPolicyReconciler) resetInstance(ctx context.Context,
 func (r *GrafanaNotificationPolicyReconciler) finalize(ctx context.Context, notificationPolicy *grafanav1beta1.GrafanaNotificationPolicy) error {
 	r.Log.Info("Finalizing GrafanaNotificationPolicy")
 
-	instances, err := GetMatchingInstances(ctx, r.Client, notificationPolicy.Spec.InstanceSelector)
+	instances, err := GetAllMatchingInstances(ctx, r.Client, notificationPolicy)
 	if err != nil {
 		return fmt.Errorf("fetching instances: %w", err)
 	}
-	for _, i := range instances.Items {
-		instance := i
-		appliedPolicy := i.Annotations[annotationAppliedNotificationPolicy]
+	for _, grafana := range instances {
+		grafana := grafana
+		appliedPolicy := grafana.Annotations[annotationAppliedNotificationPolicy]
 		if appliedPolicy != "" && appliedPolicy != notificationPolicy.NamespacedResource() {
-			r.Log.Info("instance already has a different notification policy applied - skipping", "grafana", instance.Name)
+			r.Log.Info("instance already has a different notification policy applied - skipping", "grafana", grafana.Name)
 			continue
 		}
 
-		if err := r.resetInstance(ctx, &instance); err != nil {
+		if err := r.resetInstance(ctx, &grafana); err != nil {
 			return fmt.Errorf("resetting instance notification policy: %w", err)
 		}
 	}
