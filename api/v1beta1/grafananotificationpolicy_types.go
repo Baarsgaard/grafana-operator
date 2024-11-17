@@ -155,3 +155,7 @@ type GrafanaNotificationPolicyList struct {
 func init() {
 	SchemeBuilder.Register(&GrafanaNotificationPolicy{}, &GrafanaNotificationPolicyList{})
 }
+
+func (in *GrafanaNotificationPolicy) MatchConditions() (*metav1.LabelSelector, string, *bool) {
+	return in.Spec.InstanceSelector, in.ObjectMeta.Namespace, in.Spec.AllowCrossNamespaceImport
+}
