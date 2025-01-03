@@ -26,12 +26,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-const grafanaFinalizer = "operator.grafana.com/finalizer"
-
 const (
+	syncBatchSize    = 100
+	initialSyncDelay = 10 * time.Second
+	RequeueDelay     = 10 * time.Second
+
 	conditionNoMatchingInstance = "NoMatchingInstance"
 	conditionNoMatchingFolder   = "NoMatchingFolder"
 	conditionInvalidSpec        = "InvalidSpec"
+	grafanaFinalizer            = "operator.grafana.com/finalizer"
 )
 
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
