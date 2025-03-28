@@ -24,6 +24,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -42,6 +43,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -86,6 +88,10 @@ const (
 	// wish to have services addressed using their FQDNs, you can specify the cluster domain explicitly, e.g., "cluster.local"
 	// for the default Kubernetes configuration.
 	clusterDomainEnvVar = "CLUSTER_DOMAIN"
+	// maxConcurrentReconcilesEnvVar is the constant for env variable MAX_CONCURRENT_RECONCILES, which specifies the number of simultaneous reconciles per Kind.
+	// By default only one dashboard will be reconciled at a time, but a datasource can be reconciled at the same time as a dashboard.
+	// If empty of undefined, the operator will reconcile one resource per Kind at a time.
+	maxConcurrentReconcilesEnvVar = "MAX_CONCURRENT_RECONCILES"
 )
 
 var (
@@ -146,6 +152,16 @@ func main() { // nolint:gocyclo
 		setupLog.Info(fmt.Sprintf("sharding is enabled via %s=%s. Beware: Always label Grafana CRs before enabling to ensure labels are inherited. Existing Secrets/ConfigMaps referenced in CRs also need to be labeled to continue working.", watchLabelSelectorsEnvVar, watchLabelSelectors))
 	}
 
+	maxConcurrentReconciles := 1
+	maxConcurrentReconcilesStr, _ := os.LookupEnv(maxConcurrentReconcilesEnvVar)
+	if maxConcurrentReconcilesStr != "" {
+		maxConcurrentReconciles, err = strconv.Atoi(maxConcurrentReconcilesStr)
+		if err != nil {
+			setupLog.Error(err, "invalid value %s for %s", maxConcurrentReconcilesStr, maxConcurrentReconcilesEnvVar)
+			os.Exit(1) //nolint
+		}
+	}
+
 	enforceCacheLabelsLevel, _ := os.LookupEnv(enforceCacheLabelsEnvVar)
 	enforceCacheLabels := false
 	switch enforceCacheLabelsLevel {
@@ -174,6 +190,7 @@ func main() { // nolint:gocyclo
 
 	controllerOptions := ctrl.Options{
 		Scheme:                 scheme,
+		Controller:             config.Controller{MaxConcurrentReconciles: maxConcurrentReconciles},
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: probeAddr,
