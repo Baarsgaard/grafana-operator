@@ -32,6 +32,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -136,8 +137,8 @@ func (r *GrafanaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager sets up the controller with the Manager.
 func (r *GrafanaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&grafanav1beta1.Grafana{}).
-		Owns(&v1.Deployment{}).
+		For(&grafanav1beta1.Grafana{}, builder.WithPredicates(ignoreStatusUpdates())).
+		Owns(&v1.Deployment{}, builder.WithPredicates(ignoreStatusUpdates())).
 		Owns(&v12.ConfigMap{}).
 		WithOptions(controller.Options{RateLimiter: defaultRateLimiter()}).
 		Complete(r)
