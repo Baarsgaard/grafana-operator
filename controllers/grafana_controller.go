@@ -34,6 +34,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -202,10 +203,9 @@ func (r *GrafanaReconciler) getVersion(ctx context.Context, cr *grafanav1beta1.G
 // SetupWithManager sets up the controller with the Manager.
 func (r *GrafanaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&grafanav1beta1.Grafana{}).
-		Owns(&v1.Deployment{}).
+		For(&grafanav1beta1.Grafana{}, builder.WithPredicates(ignoreStatusUpdates())).
+		Owns(&v1.Deployment{}, builder.WithPredicates(ignoreStatusUpdates())).
 		Owns(&v12.ConfigMap{}).
-		WithEventFilter(ignoreStatusUpdates()).
 		Complete(r)
 }
 
