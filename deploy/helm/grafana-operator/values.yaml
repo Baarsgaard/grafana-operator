@@ -31,6 +31,10 @@ watchLabelSelectors: ""
 # When using `all` mode, ConfigMaps and Secrets are cached and require the `app.kubernetes.io/managed-by: grafana-operator` label.
 enforceCacheLabels: "off"
 
+# -- # Sets the number of simultaneous reconciles per Kind.
+# When set to 1 only one of each CR Kind will be reconciled at a time.
+maxConcurrentReconciles: 1
+
 # -- Sets the `CLUSTER_DOMAIN` environment variable,
 # it defines how internal Kubernetes services managed by the operator are addressed.
 # By default, this is empty, and internal services are addressed without a cluster domain specified, i.e., a

@@ -72,6 +72,8 @@ spec:
               {{ else }}
               value: {{quote .Values.clusterDomain }}
               {{- end }}
+            - name: MAX_CONCURRENT_RECONCILES
+              value: {{quote .Values.maxConcurrentReconciles }}
             {{- with .Values.env }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
