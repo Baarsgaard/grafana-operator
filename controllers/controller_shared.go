@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -391,4 +392,22 @@ func removeAnnotation(ctx context.Context, cl client.Client, cr client.Object, k
 	// MergePatchType only removes map keys when the value is null. JSONPatchType allows removing anything under a path.
 	// Differs from removeFinalizer where we overwrite an array.
 	return cl.Patch(ctx, cr, client.RawPatch(types.JSONPatchType, patch))
+}
+
+func UpdateStatus(ctx context.Context, cl client.Client, cr v1beta1.CommonResource) {
+	log := log.FromContext(ctx)
+
+	cr.CommonStatus().LastResync = metav1.Time{Time: time.Now()}
+	if err := cl.Status().Update(ctx, cr); err != nil {
+		log.Error(err, "updating status")
+	}
+	if meta.IsStatusConditionTrue(cr.CommonStatus().Conditions, conditionNoMatchingInstance) {
+		if err := removeFinalizer(ctx, cl, cr); err != nil {
+			log.Error(err, "failed to remove finalizer")
+		}
+	} else {
+		if err := addFinalizer(ctx, cl, cr); err != nil {
+			log.Error(err, "failed to set finalizer")
+		}
+	}
 }

@@ -190,6 +190,8 @@ type GrafanaNotificationPolicy struct {
 	Status GrafanaNotificationPolicyStatus `json:"status,omitempty"`
 }
 
+var _ CommonResource = (*GrafanaNotificationPolicy)(nil)
+
 func (np *GrafanaNotificationPolicy) NamespacedResource() string {
 	return fmt.Sprintf("%v/%v/%v", np.ObjectMeta.Namespace, np.ObjectMeta.Name, np.ObjectMeta.UID)
 }
@@ -213,6 +215,10 @@ func (in *GrafanaNotificationPolicy) MatchNamespace() string {
 
 func (in *GrafanaNotificationPolicy) AllowCrossNamespace() bool {
 	return in.Spec.AllowCrossNamespaceImport
+}
+
+func (in *GrafanaNotificationPolicy) CommonStatus() *GrafanaCommonStatus {
+	return &in.Status.GrafanaCommonStatus
 }
 
 func init() {

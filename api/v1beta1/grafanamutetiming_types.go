@@ -107,6 +107,10 @@ func (in *GrafanaMuteTiming) AllowCrossNamespace() bool {
 	return in.Spec.AllowCrossNamespaceImport
 }
 
+func (in *GrafanaMuteTiming) CommonStatus() *GrafanaCommonStatus {
+	return &in.Status
+}
+
 func (np *GrafanaMuteTiming) NamespacedResource() string {
 	return fmt.Sprintf("%v/%v/%v", np.ObjectMeta.Namespace, np.ObjectMeta.Name, np.ObjectMeta.UID)
 }
