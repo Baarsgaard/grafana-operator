@@ -92,11 +92,6 @@ func (r *GrafanaFolderReconciler) syncFolders(ctx context.Context) (ctrl.Result,
 
 	// delete all folders that no longer have a cr
 	for grafana, existingFolders := range foldersToDelete {
-		grafanaClient, err := client2.NewGeneratedGrafanaClient(ctx, r.Client, grafana)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
 		for _, folder := range existingFolders {
 			// avoid bombarding the grafana instance with a large number of requests at once, limit
 			// the sync to a certain number of folders per cycle. This means that it will take longer to sync
@@ -107,16 +102,9 @@ func (r *GrafanaFolderReconciler) syncFolders(ctx context.Context) (ctrl.Result,
 
 			namespace, name, uid := folder.Split()
 
-			reftrue := true
-			params := folders.NewDeleteFolderParams().WithFolderUID(uid).WithForceDeleteRules(&reftrue)
-			_, err = grafanaClient.Folders.DeleteFolder(params) //nolint
+			err = r.removeFromInstance(ctx, grafana, uid)
 			if err != nil {
-				var notFound *folders.DeleteFolderNotFound
-				if errors.As(err, &notFound) {
-					log.Info("folder no longer exists", "namespace", namespace, "name", name)
-				} else {
-					return ctrl.Result{}, err
-				}
+				return ctrl.Result{}, err
 			}
 
 			grafana.Status.Folders = grafana.Status.Folders.Remove(namespace, name)
@@ -285,31 +273,39 @@ func (r *GrafanaFolderReconciler) finalize(ctx context.Context, folder *grafanav
 		return fmt.Errorf("fetching instances: %w", err)
 	}
 
-	reftrue := true
-	params := folders.NewDeleteFolderParams().WithForceDeleteRules(&reftrue)
-
 	for _, grafana := range instances {
-		found, uid := grafana.Status.Folders.Find(folder.Namespace, folder.Name)
+		found, _ := grafana.Status.Folders.Find(folder.Namespace, folder.Name)
 		if !found {
 			continue
 		}
 
-		grafanaClient, err := client2.NewGeneratedGrafanaClient(ctx, r.Client, &grafana)
+		err := r.removeFromInstance(ctx, &grafana, folder.CustomUIDOrUID())
 		if err != nil {
 			return err
-		}
-
-		_, err = grafanaClient.Folders.DeleteFolder(params.WithFolderUID(*uid)) //nolint
-		if err != nil {
-			var notFound *folders.DeleteFolderNotFound
-			if !errors.As(err, &notFound) {
-				return err
-			}
 		}
 
 		grafana.Status.Folders = grafana.Status.Folders.Remove(folder.Namespace, folder.Name)
 		if err = r.Client.Status().Update(ctx, &grafana); err != nil {
 			return fmt.Errorf("removing Folder from Grafana cr: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (r *GrafanaFolderReconciler) removeFromInstance(ctx context.Context, grafana *grafanav1beta1.Grafana, uid string) error {
+	grafanaClient, err := client2.NewGeneratedGrafanaClient(ctx, r.Client, grafana)
+	if err != nil {
+		return err
+	}
+
+	reftrue := true
+	params := folders.NewDeleteFolderParams().WithForceDeleteRules(&reftrue)
+	_, err = grafanaClient.Folders.DeleteFolder(params.WithFolderUID(uid)) //nolint
+	if err != nil {
+		var notFound *folders.DeleteFolderNotFound
+		if !errors.As(err, &notFound) {
+			return err
 		}
 	}
 
