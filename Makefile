@@ -258,8 +258,8 @@ bundle/redhat: bundle
 
 # e2e
 .PHONY: e2e-kind
-e2e-kind:
-ifeq (,$(shell kind get clusters ))
+e2e-kind: kind
+ifeq (,$(shell $(KIND) get clusters) )
 	$(KIND) --kubeconfig="${KUBECONFIG}" create cluster --image=kindest/node:v$(ENVTEST_K8S_VERSION) --config tests/e2e/kind.yaml
 endif
 
@@ -321,7 +321,7 @@ ko-build-local: ko ## Build Docker image with KO
 	$(KO) build --sbom=none --bare
 
 .PHONY: ko-build-kind
-ko-build-kind: ko-build-local ## Build and Load Docker image into kind cluster
+ko-build-kind: ko-build-local kind ## Build and Load Docker image into kind cluster
 	$(KIND) load docker-image $(KO_DOCKER_REPO) --name $(KIND_CLUSTER_NAME)
 
 helm-docs:
